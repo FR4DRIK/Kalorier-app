@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Kalorier</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+  label { display: block; margin-bottom: 10px; }
+  select, button { font-size: 1rem; padding: 6px; margin-bottom: 10px; }
+  button { cursor: pointer; }
+  h2 { margin-top: 30px; }
+  ul { padding-left: 20px; margin-bottom: 20px; }
+  .result { font-size: 1.2rem; margin-top: 10px; }
+  li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Dagens kalorier</h1>
+
+<label>
+  Livsmedel:
+  <select id="foodSelect"></select>
+</label>
+
+<label>
+  Gram:
+  <select id="grams"></select>
+</label>
+
+<div>
+  <button id="addBtn">Lägg till i pågående måltid</button>
+  <button id="saveMealBtn">Spara som mall</button>
+  <button id="confirmMealBtn">Bekräfta måltid</button>
+</div>
+
+<h2>Pågående måltid</h2>
+<ul id="currentMealList"></ul>
+
+<h2>Sparade måltider</h2>
+<select id="savedMealSelect">
+  <option value="">-- Välj sparad måltid --</option>
+</select>
+<button id="useSavedMealBtn">Använd vald måltid</button>
+
+<h2>Dagens sammanställning</h2>
+<ul id="dailyMealList"></ul>
+<div class="result">Total kcal idag: <span id="totalKcal">0</span></div>
+
+<script>
+const foods = [
+  { name: "Köttbullar", kcal: 220 },
+  { name: "Potatis", kcal: 80 },
+  { name: "Sås", kcal: 150 },
+  { name: "Grönsaker", kcal: 40 },
+  { name: "Bröd", kcal: 250 }
+];
+
+const foodSelect = document.getElementById("foodSelect");
+const gramsInput = document.getElementById("grams");
+const addBtn = document.getElementById("addBtn");
+const saveMealBtn = document.getElementById("saveMealBtn");
+const confirmMealBtn = document.getElementById("confirmMealBtn");
+const currentMealList = document.getElementById("currentMealList");
+const savedMealSelect = document.getElementById("savedMealSelect");
+const useSavedMealBtn = document.getElementById("useSavedMealBtn");
+const dailyMealList = document.getElementById("dailyMealList");
+const totalKcalSpan = document.getElementById("totalKcal");
+
+// Datastrukturer
+let currentMeal = [];
+let savedMeals = [];
+let dailyMeals = [];
+
+// Fyll livsmedelsdropdown
+foods.forEach(f => {
+  const option = document.createElement("option");
+  option.value = f.kcal;
+  option.textContent = f.name;
+  foodSelect.appendChild(option);
+});
+
+// Fyll gram-dropdown med steg om 5 g 0-250
+for (let g = 0; g <= 250; g += 5) {
+  const option = document.createElement("option");
+  option.value = g;
+  option.textContent = g + " g";
+  gramsInput.appendChild(option);
+}
+gramsInput.value = 100;
+
+// Lägg till ingrediens i pågående måltid
+addBtn.addEventListener("click", () => {
+  const foodName = foodSelect.options[foodSelect.selectedIndex].text;
+  const grams = Number(gramsInput.value);
+  const kcalPer100g = Number(foodSelect.value);
+  const kcal = (grams / 100) * kcalPer100g;
+  currentMeal.push({ foodName, grams, kcal });
+  renderCurrentMeal();
+});
+
+// Spara pågående måltid som mall
+saveMealBtn.addEventListener("click", () => {
+  if(currentMeal.length === 0) return;
+  savedMeals.push(currentMeal.map(i => ({...i}))); // kopiera
+  localStorage.setItem("savedMeals", JSON.stringify(savedMeals));
+  renderSavedMeals();
+});
+
+// Bekräfta måltid
+confirmMealBtn.addEventListener("click", () => {
+  if(currentMeal.length === 0) return;
+  dailyMeals.push(currentMeal.map(i => ({...i})));
+  currentMeal = [];
+  renderCurrentMeal();
+  renderDailyMeals();
+});
+
+// Använd vald sparad måltid
+useSavedMealBtn.addEventListener("click", () => {
+  const selectedIndex = savedMealSelect.value;
+  if(selectedIndex === "") return;
+  const meal = savedMeals[selectedIndex].map(i => ({ ...i })); // kopiera
+  dailyMeals.push(meal); // direkt till dagens sammanställning
+  renderDailyMeals();
+});
+
+// Rendera pågående måltid
+function renderCurrentMeal() {
+  currentMealList.innerHTML = "";
+  currentMeal.forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = `${item.foodName} – ${item.grams} g – ${Math.round(item.kcal)} kcal`;
+    currentMealList.appendChild(li);
+  });
+}
+
+// Rendera sparade måltider i dropdown
+function renderSavedMeals() {
+  savedMealSelect.innerHTML = '<option value="">-- Välj sparad måltid --</option>';
+  savedMeals.forEach((meal, index) => {
+    const option = document.createElement("option");
+    option.value = index; // index som value
+    option.textContent = meal.map(i => i.foodName).join(", ");
+    savedMealSelect.appendChild(option);
+  });
+}
+
+// Rendera dagens måltider
+function renderDailyMeals() {
+  dailyMealList.innerHTML = "";
+  let total = 0;
+  dailyMeals.forEach((meal, mIndex) => {
+    const li = document.createElement("li");
+    const mealText = meal.map(i => `${i.foodName} (${i.grams} g)`).join(", ");
+    const mealKcal = meal.reduce((sum, i) => sum + i.kcal, 0);
+    total += mealKcal;
+    li.textContent = `Måltid ${mIndex+1}: ${mealText} – ${Math.round(mealKcal)} kcal`;
+    dailyMealList.appendChild(li);
+  });
+  totalKcalSpan.textContent = Math.round(total);
+}
+
+// Ladda sparade måltider från localStorage
+if(localStorage.getItem("savedMeals")) {
+  savedMeals = JSON.parse(localStorage.getItem("savedMeals"));
+  renderSavedMeals();
+}
+
+</script>
+
+</body>
+</html>
