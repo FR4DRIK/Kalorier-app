@@ -5,50 +5,185 @@
 <title>Kalorier</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body { font-family: system-ui, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
-  label { display: block; margin-bottom: 10px; }
-  select, button { font-size: 1rem; padding: 6px; margin-bottom: 10px; }
-  button { cursor: pointer; }
-  h2 { margin-top: 30px; }
-  ul { padding-left: 20px; margin-bottom: 20px; }
-  .result { font-size: 1.2rem; margin-top: 10px; }
-  li { margin-bottom: 4px; }
+body {
+  font-family: system-ui, sans-serif;
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
+}
+
+select, button {
+  font-size: 1rem;
+  padding: 10px;
+  margin: 5px 0;
+  box-sizing: border-box;
+  display: block;
+}
+
+/* Ta bort width:100% här så fil-input inte blir för stor */
+button {
+  background-color: #b6f0b6;
+  border: 1px solid #88d088;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #a0e0a0;
+}
+
+.meal {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  width: 100%;
+}
+
+ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  font-family: monospace;
+  width: 100%;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 5px;
+}
+
+.mealTitle {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.result {
+  font-size: 1.2rem;
+  margin-top: 10px;
+}
+
+hr {
+  margin: 20px 0;
+}
+
+#mealInputContainer {
+  display: none;
+}
+
+/* Exportera backup - full bredd, svagt gul */
+#exportJSONBtn {
+  background-color: #fff7cc;
+  border: 1px solid #ffe699;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 1rem;
+  width: 100%;
+}
+
+#exportJSONBtn:hover {
+  background-color: #ffe699;
+}
+
+/* Container för import - två knappar bredvid varandra */
+#importContainer {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Välj fil halva storleken */
+#importContainer input[type="file"] {
+  flex: 1;
+  max-width: 50%;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #99ccff;
+  cursor: pointer;
+  width: auto; /* viktiga ändring så den inte blir full bredd */
+}
+
+/* Importera backup - andra halvan */
+#importContainer button {
+  flex: 1;
+  max-width: 50%;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  border: 1px solid #99ccff;
+  background-color: #cce5ff;
+  cursor: pointer;
+}
+
+#importContainer button:hover {
+  background-color: #b3d7ff;
+}
 </style>
 </head>
 <body>
 
 <h1>Dagens kalorier</h1>
 
-<label>
-  Livsmedel:
-  <select id="foodSelect"></select>
-</label>
-
-<label>
-  Gram:
-  <select id="grams"></select>
-</label>
-
-<div>
-  <button id="addBtn">Lägg till i pågående måltid</button>
-  <button id="saveMealBtn">Spara som mall</button>
-  <button id="confirmMealBtn">Bekräfta måltid</button>
-</div>
-
-<h2>Pågående måltid</h2>
-<ul id="currentMealList"></ul>
-
-<h2>Sparade måltider</h2>
-<select id="savedMealSelect">
-  <option value="">-- Välj sparad måltid --</option>
+<!-- Sparade måltider -->
+<select id="savedMealsSelect">
+  <option value="">Välj sparad måltid</option>
 </select>
 <button id="useSavedMealBtn">Använd vald måltid</button>
 
+<hr>
+
+<button id="newMealBtn">Ny måltid</button>
+
+<div id="mealInputContainer">
+  <select id="foodSelect">
+    <option value="">Välj livsmedel</option>
+  </select>
+
+  <select id="gramsSelect">
+    <option value="">Välj gram</option>
+  </select>
+
+  <button id="addMealBtn">Lägg till i pågående måltid</button>
+  <div class="result" id="mealPreview"></div>
+
+  <button id="confirmMealBtn">Bekräfta måltid</button>
+  <button id="saveMealBtn">Spara måltid för framtiden</button>
+</div>
+
+<hr>
+
 <h2>Dagens sammanställning</h2>
-<ul id="dailyMealList"></ul>
-<div class="result">Total kcal idag: <span id="totalKcal">0</span></div>
+<div id="dayMealsContainer"></div>
+<div class="result" id="dayTotal"></div>
+<button id="confirmDayBtn">Bekräfta dagens intag</button>
+
+<hr>
+
+<h2>Pågående vecka</h2>
+<div id="weekSummaryContainer"></div>
+<div class="result" id="weekTotal"></div>
+<button id="confirmWeekBtn">Bekräfta vecka</button>
+
+<hr>
+
+<h2>Sparade veckor</h2>
+<div id="savedWeeksContainer"></div>
+
+<hr>
+
+<!-- Exportera backup -->
+<button id="exportJSONBtn">Exportera backup (dag + veckor + sparade måltider)</button>
+
+<!-- Importera backup -->
+<div id="importContainer">
+  <input type="file" id="importFile" accept=".json">
+  <button id="importJSONBtn">Importera backup</button>
+</div>
 
 <script>
+// --- Data och variabler ---
 const foods = [
   { name: "Köttbullar", kcal: 220 },
   { name: "Potatis", kcal: 80 },
@@ -57,21 +192,23 @@ const foods = [
   { name: "Bröd", kcal: 250 }
 ];
 
-const foodSelect = document.getElementById("foodSelect");
-const gramsInput = document.getElementById("grams");
-const addBtn = document.getElementById("addBtn");
-const saveMealBtn = document.getElementById("saveMealBtn");
-const confirmMealBtn = document.getElementById("confirmMealBtn");
-const currentMealList = document.getElementById("currentMealList");
-const savedMealSelect = document.getElementById("savedMealSelect");
-const useSavedMealBtn = document.getElementById("useSavedMealBtn");
-const dailyMealList = document.getElementById("dailyMealList");
-const totalKcalSpan = document.getElementById("totalKcal");
-
-// Datastrukturer
 let currentMeal = [];
 let savedMeals = [];
-let dailyMeals = [];
+let dayMeals = [];
+let weekDays = [];
+let savedWeeks = [];
+
+const foodSelect = document.getElementById("foodSelect");
+const gramsSelect = document.getElementById("gramsSelect");
+const mealPreview = document.getElementById("mealPreview");
+const dayMealsContainer = document.getElementById("dayMealsContainer");
+const dayTotal = document.getElementById("dayTotal");
+const savedMealsSelect = document.getElementById("savedMealsSelect");
+const weekSummaryContainer = document.getElementById("weekSummaryContainer");
+const weekTotal = document.getElementById("weekTotal");
+const savedWeeksContainer = document.getElementById("savedWeeksContainer");
+const mealInputContainer = document.getElementById("mealInputContainer");
+const newMealBtn = document.getElementById("newMealBtn");
 
 // Fyll livsmedelsdropdown
 foods.forEach(f => {
@@ -81,93 +218,270 @@ foods.forEach(f => {
   foodSelect.appendChild(option);
 });
 
-// Fyll gram-dropdown med steg om 5 g 0-250
-for (let g = 0; g <= 250; g += 5) {
+// Fyll gramdropdown 5-250
+for(let g=5; g<=250; g+=5){
   const option = document.createElement("option");
   option.value = g;
   option.textContent = g + " g";
-  gramsInput.appendChild(option);
+  gramsSelect.appendChild(option);
 }
-gramsInput.value = 100;
 
-// Lägg till ingrediens i pågående måltid
-addBtn.addEventListener("click", () => {
-  const foodName = foodSelect.options[foodSelect.selectedIndex].text;
-  const grams = Number(gramsInput.value);
-  const kcalPer100g = Number(foodSelect.value);
-  const kcal = (grams / 100) * kcalPer100g;
-  currentMeal.push({ foodName, grams, kcal });
-  renderCurrentMeal();
-});
+// Svensk veckodag
+function getSwedishWeekday(d){
+  const days = ["Söndag","Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag"];
+  return days[d.getDay()];
+}
 
-// Spara pågående måltid som mall
-saveMealBtn.addEventListener("click", () => {
-  if(currentMeal.length === 0) return;
-  savedMeals.push(currentMeal.map(i => ({...i}))); // kopiera
+// Visa pågående måltid
+function renderMealPreview(){
+  mealPreview.innerHTML = "";
+  if(currentMeal.length===0) return;
+  const ul = document.createElement("ul");
+  let kcalSum=0;
+  currentMeal.forEach(m=>{
+    const kcal=(m.grams/100)*m.kcal;
+    kcalSum += kcal;
+    const li=document.createElement("li");
+    li.innerHTML=`<span>${m.name} ${m.grams}g</span><span>(${Math.round(kcal)} kcal)</span>`;
+    ul.appendChild(li);
+  });
+  mealPreview.appendChild(ul);
+  const totalDiv=document.createElement("div");
+  totalDiv.textContent=`Totalt: ${Math.round(kcalSum)} kcal`;
+  mealPreview.appendChild(totalDiv);
+}
+
+// Visa dagens måltider
+function renderDayMeals(){
+  dayMealsContainer.innerHTML="";
+  let total=0;
+  for(let i=dayMeals.length-1;i>=0;i--){
+    const meal=dayMeals[i];
+    const div=document.createElement("div");
+    div.className="meal";
+    const titleDiv=document.createElement("div");
+    titleDiv.className="mealTitle";
+    titleDiv.textContent=`Måltid ${i+1}`;
+    div.appendChild(titleDiv);
+    const ul=document.createElement("ul");
+    let mealSum=0;
+    meal.forEach(m=>{
+      const kcal=(m.grams/100)*m.kcal;
+      mealSum+=kcal;
+      const li=document.createElement("li");
+      li.innerHTML=`<span>${m.name} ${m.grams}g</span><span>(${Math.round(kcal)} kcal)</span>`;
+      ul.appendChild(li);
+    });
+    total+=mealSum;
+    div.appendChild(ul);
+    const sumDiv=document.createElement("div");
+    sumDiv.textContent=`Måltid totalt: ${Math.round(mealSum)} kcal`;
+    div.appendChild(sumDiv);
+    dayMealsContainer.appendChild(div);
+  }
+  dayTotal.textContent=`Dagens totala kalorier: ${Math.round(total)} kcal`;
+}
+
+// Visa pågående vecka
+function renderWeekSummary(){
+  weekSummaryContainer.innerHTML="";
+  let totalWeek=0;
+  weekDays.forEach(day=>{
+    const div=document.createElement("div");
+    const date = new Date(day.date);
+    const dayNum=date.getDate();
+    const monthNum=date.getMonth()+1;
+    const weekday=getSwedishWeekday(date);
+    div.textContent=`${dayNum}/${monthNum} ${weekday}: ${Math.round(day.total)} kcal`;
+    weekSummaryContainer.appendChild(div);
+    totalWeek+=day.total;
+  });
+  weekTotal.textContent=`Veckans totala kalorier: ${Math.round(totalWeek)} kcal`;
+}
+
+// Visa sparade veckor
+function renderSavedWeeks(){
+  savedWeeksContainer.innerHTML="";
+  savedWeeks.forEach((week,i)=>{
+    const div=document.createElement("div");
+    div.textContent=`Vecka ${i+1}: ${week.total} kcal`;
+    savedWeeksContainer.appendChild(div);
+  });
+}
+
+// Spara/load från localStorage
+function saveData(){
+  localStorage.setItem("dayMeals", JSON.stringify(dayMeals));
   localStorage.setItem("savedMeals", JSON.stringify(savedMeals));
-  renderSavedMeals();
-});
+  localStorage.setItem("weekDays", JSON.stringify(weekDays));
+  localStorage.setItem("savedWeeks", JSON.stringify(savedWeeks));
+}
 
-// Bekräfta måltid
-confirmMealBtn.addEventListener("click", () => {
-  if(currentMeal.length === 0) return;
-  dailyMeals.push(currentMeal.map(i => ({...i})));
-  currentMeal = [];
-  renderCurrentMeal();
-  renderDailyMeals();
-});
+function loadData(){
+  const savedDay=localStorage.getItem("dayMeals");
+  if(savedDay) dayMeals=JSON.parse(savedDay);
 
-// Använd vald sparad måltid
-useSavedMealBtn.addEventListener("click", () => {
-  const selectedIndex = savedMealSelect.value;
-  if(selectedIndex === "") return;
-  const meal = savedMeals[selectedIndex].map(i => ({ ...i })); // kopiera
-  dailyMeals.push(meal); // direkt till dagens sammanställning
-  renderDailyMeals();
-});
+  const savedSaves=localStorage.getItem("savedMeals");
+  if(savedSaves) savedMeals=JSON.parse(savedSaves);
 
-// Rendera pågående måltid
-function renderCurrentMeal() {
-  currentMealList.innerHTML = "";
-  currentMeal.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = `${item.foodName} – ${item.grams} g – ${Math.round(item.kcal)} kcal`;
-    currentMealList.appendChild(li);
+  const savedWeekDays=localStorage.getItem("weekDays");
+  if(savedWeekDays) weekDays=JSON.parse(savedWeekDays);
+
+  const savedWeeksData=localStorage.getItem("savedWeeks");
+  if(savedWeeksData) savedWeeks=JSON.parse(savedWeeksData);
+
+  updateSavedMealsDropdown();
+  renderDayMeals();
+  renderWeekSummary();
+  renderSavedWeeks();
+}
+
+// Dropdown sparade måltider
+function updateSavedMealsDropdown(){
+  savedMealsSelect.innerHTML='<option value="">Välj sparad måltid</option>';
+  savedMeals.forEach((meal,i)=>{
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=meal.map(m=>`${m.name} ${m.grams}g`).join(", ");
+    savedMealsSelect.appendChild(option);
   });
 }
 
-// Rendera sparade måltider i dropdown
-function renderSavedMeals() {
-  savedMealSelect.innerHTML = '<option value="">-- Välj sparad måltid --</option>';
-  savedMeals.forEach((meal, index) => {
-    const option = document.createElement("option");
-    option.value = index; // index som value
-    option.textContent = meal.map(i => i.foodName).join(", ");
-    savedMealSelect.appendChild(option);
+// Återställ dropdowns
+function resetDropdowns(){
+  foodSelect.value="";
+  gramsSelect.value="";
+  savedMealsSelect.value="";
+}
+
+// Visa/dölj input
+newMealBtn.addEventListener("click", ()=>{
+  mealInputContainer.style.display = "block";
+});
+
+// Event listeners för måltider
+document.getElementById("addMealBtn").addEventListener("click", ()=>{
+  const name=foodSelect.options[foodSelect.selectedIndex].textContent;
+  const kcal=Number(foodSelect.value);
+  const grams=Number(gramsSelect.value);
+  if(!name || !grams) return;
+  currentMeal.push({name,kcal,grams});
+  renderMealPreview();
+  gramsSelect.value=100;
+});
+
+document.getElementById("confirmMealBtn").addEventListener("click", ()=>{
+  if(currentMeal.length===0) return;
+  dayMeals.push([...currentMeal]);
+  currentMeal=[];
+  renderMealPreview();
+  renderDayMeals();
+  resetDropdowns();
+  mealInputContainer.style.display="none";
+  saveData();
+});
+
+document.getElementById("saveMealBtn").addEventListener("click", ()=>{
+  if(currentMeal.length===0) return;
+  savedMeals.unshift([...currentMeal]);
+  updateSavedMealsDropdown();
+  resetDropdowns();
+  saveData();
+});
+
+document.getElementById("useSavedMealBtn").addEventListener("click", ()=>{
+  const idx = savedMealsSelect.value;
+  if(idx==="") return;
+  dayMeals.push([...savedMeals[idx]]);
+  renderDayMeals();
+  resetDropdowns();
+  saveData();
+});
+
+// Bekräfta dagens intag
+document.getElementById("confirmDayBtn").addEventListener("click", ()=>{
+  let total=0;
+  dayMeals.forEach(meal=>{
+    meal.forEach(m=>{
+      total+=(m.grams/100)*m.kcal;
+    });
   });
-}
+  const today=new Date().toISOString().split("T")[0];
+  weekDays.push({date: today, total});
+  renderWeekSummary();
+  dayMeals=[];
+  renderDayMeals();
+  resetDropdowns();
+  mealInputContainer.style.display="none";
+  saveData();
+});
 
-// Rendera dagens måltider
-function renderDailyMeals() {
-  dailyMealList.innerHTML = "";
-  let total = 0;
-  dailyMeals.forEach((meal, mIndex) => {
-    const li = document.createElement("li");
-    const mealText = meal.map(i => `${i.foodName} (${i.grams} g)`).join(", ");
-    const mealKcal = meal.reduce((sum, i) => sum + i.kcal, 0);
-    total += mealKcal;
-    li.textContent = `Måltid ${mIndex+1}: ${mealText} – ${Math.round(mealKcal)} kcal`;
-    dailyMealList.appendChild(li);
+// Bekräfta vecka
+document.getElementById("confirmWeekBtn").addEventListener("click", ()=>{
+  let totalWeek=0;
+  weekDays.forEach(day=> totalWeek+=day.total);
+  savedWeeks.push({week: new Date().toISOString().split("T")[0], total: Math.round(totalWeek)});
+  weekDays=[];
+  renderWeekSummary();
+  renderSavedWeeks();
+  saveData();
+});
+
+// Exportera backup
+document.getElementById("exportJSONBtn").addEventListener("click", ()=>{
+  let dayTotalSum=0;
+  dayMeals.forEach(meal=>{
+    meal.forEach(m=>{
+      dayTotalSum+=(m.grams/100)*m.kcal;
+    });
   });
-  totalKcalSpan.textContent = Math.round(total);
-}
+  const today=new Date().toISOString().split("T")[0];
 
-// Ladda sparade måltider från localStorage
-if(localStorage.getItem("savedMeals")) {
-  savedMeals = JSON.parse(localStorage.getItem("savedMeals"));
-  renderSavedMeals();
-}
+  const backup={
+    date: today,
+    dayTotal: Math.round(dayTotalSum),
+    savedWeeks: savedWeeks,
+    savedMeals: savedMeals
+  };
 
+  const blob=new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`kalorier_backup_${today}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Importera backup
+document.getElementById("importJSONBtn").addEventListener("click", ()=>{
+  const fileInput=document.getElementById("importFile");
+  if(fileInput.files.length===0) return alert("Välj en JSON-fil först!");
+  const file=fileInput.files[0];
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.savedMeals) savedMeals=data.savedMeals;
+      if(data.savedWeeks) savedWeeks=data.savedWeeks;
+      if(data.dayTotal!==undefined) {
+        dayMeals=[];
+      }
+      updateSavedMealsDropdown();
+      renderDayMeals();
+      renderWeekSummary();
+      renderSavedWeeks();
+      saveData();
+      alert("Backup återställd!");
+    }catch(err){
+      alert("Fel vid läsning av fil: "+err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+loadData();
+renderMealPreview();
 </script>
 
 </body>
