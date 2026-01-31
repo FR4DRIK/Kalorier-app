@@ -37,10 +37,10 @@ h1 {text-align: center;}
 
 </style>
 </head>
+
+  
 <body>
 <h1>Kaloriberäkning</h1>
-
-
 
   <select id="foodSelect">
     <option value="">Välj livsmedel</option>
@@ -72,31 +72,26 @@ h1 {text-align: center;}
 </body>
 
 <script>
-fetch("foods.json")
-  .then(response => response.json())
-  .then(foods => {
-    const select = document.getElementById("foodSelect");
+  // Livsmedel lagrade direkt i JS
+  let foods = [
+    { namn: "Äpple", kalorier: 52, vikt: 65, typ: "FruktGrönt"},
+    { namn: "Banan", kalorier: 89, vikt: 85, typ: "FruktGrönt"},
+    { namn: "GrötBröd", kalorier: 265, vikt: 40, typ: "Bröd"},
+    { namn: "KanelKnäcke", kalorier: 65, vikt: 15, typ: "Bröd },
+    { namn: "FrukostFulkorn", kalorier: 15, vikt: 14, typ: "Bröd" },
+    { namn: "HavreKnäcke", kalorier: 89, vikt: 16, typ: "Bröd" },
+  ];
 
+  function visaLivsmedel() {
+    const lista = document.getElementById("lista");
+    lista.innerHTML = ""; // tömmer listan
     foods.forEach(food => {
-      const option = document.createElement("option");
-      option.value = food.id;
-      option.textContent = food.name;
-      option.dataset.kcal = food.kcal;
-      select.appendChild(option);
+      lista.innerHTML += `<li>${food.namn} - ${food.kalorier} kcal</li>`;
     });
-  });
+  }
 
-  document.getElementById("foodSelect").addEventListener("change", e => {
-  const selectedOption = e.target.selectedOptions[0];
-
-  if (!selectedOption || !selectedOption.dataset.kcal) return;
-
-  const kcal = Number(selectedOption.dataset.kcal);
-  console.log("kcal per 100g:", kcal);
-});
-
-
+  // Kör när sidan laddas
+  window.onload = visaLivsmedel;
 </script>
-
 
 </body>
