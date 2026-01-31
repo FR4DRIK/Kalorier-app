@@ -2,94 +2,412 @@
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
-<title>Fredriks testdokument</title>
+<title>Kalorier</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body { font-family: 'Courier New'; padding: 20px; max-width: 400px; border: 1px solid #000; padding: 10px; background-color: lightgrey;}
-
+body { font-family: system-ui, sans-serif; padding: 20px; max-width: 400px; margin: auto; }
 select, button { 
   font-size: 1rem; 
   padding: 10px; 
-  margin: 4px 0; 
-  width: 95%; 
+  margin: 5px 0; 
+  width: 100%; 
   box-sizing: border-box; 
-  display: inline-block; }
-
+  display: block; 
+}
 button { 
   background-color: #62a9fb; 
-  border: 2px solid #c4008d; 
+  border: 3px solid #c4008d; 
   border-radius: 10px; 
   cursor: pointer; 
 }
-Select {
- appearance: none;
-  -webkit-appearance: none;
+button:hover { background-color: #fc92ec; }
 
-  background-color: rgb(133, 220, 34);
-  border: 2px solid #4e4e4e;
-  border-radius: 10px;
-  height: 44px;
+.meal { margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; width: 100%; }
 
-    text-align: center;
-    text-align-last: center;
-}
-h1 {text-align: center;}
+ul { margin: 0; padding-left: 0; list-style: none; font-family: monospace; width: 100%; }
+li { display: flex; justify-content: space-between; padding: 0 5px; }
+
+.mealTitle { font-weight: bold; text-align: center; margin-bottom: 5px; }
+.result { font-size: 1.2rem; margin-top: 10px; }
+
+hr { margin: 20px 0; }
+
+#mealInputContainer { display: none; }
+#importContainer { margin-top: 10px; font-size: 0.9rem; }
+
+#useSavedMealBtn {width: 48%; background-color: #25dd22;display: inline-block;}
+#useSavedMealBtn:hover {background-color: #2efff5; }
+
+#useSavedMealBtn2 {width: 48%; background-color: #ff2f2f;display: inline-block; }
+#useSavedMealBtn2:hover {background-color: #ffe72e; }
 
 </style>
 </head>
-
-  
 <body>
-<h1>Kaloriberäkning</h1>
 
-  <select id="lista">
+<h1>Dagens kalorier</h1>
+
+<!-- Sparade måltider -->
+<select id="savedMealsSelect"><option value="">Välj sparad måltid</option></select>
+
+<button id="useSavedMealBtn">Använd vald måltid</button>
+<button id="useSavedMealBtn2">Radera vald måltid</button>
+
+<hr>
+
+<button id="newMealBtn">Ny måltid</button>
+
+<div id="mealInputContainer">
+  <select id="foodSelect">
     <option value="">Välj livsmedel</option>
   </select>
 
-<div></div>
-
-  <select>
-    <option value="">Välj antal</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-    <option value="3">3</option>
-    <option value="4">4</option>
-    <option value="5">5</option>
-  </select>
-
-  <select>
+  <select id="gramsSelect">
     <option value="">Välj gram</option>
-    <option value="1">10</option>
-    <option value="2">20</option>
-    <option value="3">30</option>
-    <option value="4">40</option>
-    <option value="5">50</option>
   </select>
-  
-  </div>
 
-  <button>Lägg till måltid</button>
-</body>
+  <button id="addMealBtn">Lägg till i pågående måltid</button>
+  <div class="result" id="mealPreview"></div>
+
+  <button id="confirmMealBtn">Bekräfta måltid</button>
+  <button id="saveMealBtn">Spara måltid för framtiden</button>
+</div>
+
+<hr>
+
+<h2>Dagens sammanställning</h2>
+<div id="dayMealsContainer"></div>
+<div class="result" id="dayTotal"></div>
+<button id="confirmDayBtn">Bekräfta dagens intag</button>
+
+<hr>
+
+<h2>Pågående vecka</h2>
+<div id="weekSummaryContainer"></div>
+<div class="result" id="weekTotal"></div>
+<button id="confirmWeekBtn">Bekräfta vecka</button>
+
+<hr>
+
+<h2>Sparade veckor</h2>
+<div id="savedWeeksContainer"></div>
+
+<hr>
+<button id="exportJSONBtn">Exportera backup (dag + veckor + sparade måltider)</button>
+
+<div id="importContainer">
+  <input type="file" id="importFile" accept=".json">
+  <button id="importJSONBtn">Importera backup</button>
+</div>
 
 <script>
-  // Livsmedel lagrade direkt i JS
-  let foods = [
-    { namn: "Äpple", kalorier: 52, vikt: 65, typ: "FruktGrönt"},
-    { namn: "Banan", kalorier: 89, vikt: 85, typ: "FruktGrönt"},
-    { namn: "GrötBröd", kalorier: 265, vikt: 40, typ: "Bröd"},
-    { namn: "KanelKnäcke", kalorier: 65, vikt: 15, typ: "Bröd"},
-    { namn: "FrukostFulkorn", kalorier: 15, vikt: 14, typ: "Bröd"},
-    { namn: "HavreKnäcke", kalorier: 89, vikt: 16, typ: "Bröd"},
-  ];
+const foods = [
+  { name: "Köttbullar", kcal: 220 },
+  { name: "Potatis", kcal: 80 },
+  { name: "Sås", kcal: 150 },
+  { name: "Grönsaker", kcal: 40 },
+  { name: "Bröd", kcal: 250 },
+  { name: "Hamburgare", kcal: 220 },
+  { name: "Hamburgerbröd", kcal: 205 },
+  { name: "Köttfärssås", kcal: 165 },
+  { name: "Lasagne", kcal: 195 },
+  { name: "Hushållsost", kcal: 450 },
+  { name: "FrukostFullkorn", kcal: 240 },
+  { name: "BaconKyckling", kcal: 285 }
+];
 
-  function visaLivsmedel() {
-    const lista = document.getElementById("lista");
-    lista.innerHTML = ""; // tömmer listan
-    foods.forEach(food => {
-      lista.innerHTML += `<li>${food.namn} - ${food.kalorier} kcal</li>`;
+let currentMeal = [];
+let savedMeals = [];
+let dayMeals = [];
+let weekDays = [];
+let savedWeeks = [];
+
+const foodSelect = document.getElementById("foodSelect");
+const gramsSelect = document.getElementById("gramsSelect");
+const mealPreview = document.getElementById("mealPreview");
+const dayMealsContainer = document.getElementById("dayMealsContainer");
+const dayTotal = document.getElementById("dayTotal");
+const savedMealsSelect = document.getElementById("savedMealsSelect");
+const weekSummaryContainer = document.getElementById("weekSummaryContainer");
+const weekTotal = document.getElementById("weekTotal");
+const savedWeeksContainer = document.getElementById("savedWeeksContainer");
+const mealInputContainer = document.getElementById("mealInputContainer");
+const newMealBtn = document.getElementById("newMealBtn");
+
+// Fyll livsmedelsdropdown
+foods.forEach(f => {
+  const option = document.createElement("option");
+  option.value = f.kcal;
+  option.textContent = f.name;
+  foodSelect.appendChild(option);
+});
+
+// Fyll gramdropdown 5-250
+for(let g=5; g<=250; g+=5){
+  const option = document.createElement("option");
+  option.value = g;
+  option.textContent = g + " g";
+  gramsSelect.appendChild(option);
+}
+
+// Svensk veckodag
+function getSwedishWeekday(d){
+  const days = ["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"];
+  return days[d.getDay()];
+}
+
+// Visa pågående måltid
+function renderMealPreview(){
+  mealPreview.innerHTML = "";
+  if(currentMeal.length===0) return;
+  const ul = document.createElement("ul");
+  let kcalSum=0;
+  currentMeal.forEach(m=>{
+    const kcal=(m.grams/100)*m.kcal;
+    kcalSum += kcal;
+    const li=document.createElement("li");
+    li.innerHTML=`<span>${m.name} ${m.grams}g</span><span>(${Math.round(kcal)} kcal)</span>`;
+    ul.appendChild(li);
+  });
+  mealPreview.appendChild(ul);
+  const totalDiv=document.createElement("div");
+  totalDiv.textContent=`Totalt: ${Math.round(kcalSum)} kcal`;
+  mealPreview.appendChild(totalDiv);
+}
+
+// Visa dagens måltider
+function renderDayMeals(){
+  dayMealsContainer.innerHTML="";
+  let total=0;
+  for(let i=dayMeals.length-1;i>=0;i--){
+    const meal=dayMeals[i];
+    const div=document.createElement("div");
+    div.className="meal";
+    const titleDiv=document.createElement("div");
+    titleDiv.className="mealTitle";
+    titleDiv.textContent=`Måltid ${i+1}`;
+    div.appendChild(titleDiv);
+    const ul=document.createElement("ul");
+    let mealSum=0;
+    meal.forEach(m=>{
+      const kcal=(m.grams/100)*m.kcal;
+      mealSum+=kcal;
+      const li=document.createElement("li");
+      li.innerHTML=`<span>${m.name} ${m.grams}g</span><span>(${Math.round(kcal)} kcal)</span>`;
+      ul.appendChild(li);
     });
+    total+=mealSum;
+    div.appendChild(ul);
+    const sumDiv=document.createElement("div");
+    sumDiv.textContent=`Måltid totalt: ${Math.round(mealSum)} kcal`;
+    div.appendChild(sumDiv);
+    dayMealsContainer.appendChild(div);
   }
+  dayTotal.textContent=`Dagens totala kalorier: ${Math.round(total)} kcal`;
+}
 
-  // Kör när sidan laddas
-  window.onload = visaLivsmedel;
+// Visa pågående vecka
+function renderWeekSummary(){
+  weekSummaryContainer.innerHTML="";
+  let totalWeek=0;
+  weekDays.forEach(day=>{
+    const div=document.createElement("div");
+    const date = new Date(day.date);
+    const dayNum=date.getDate();
+    const monthNum=date.getMonth()+1;
+    const weekday=getSwedishWeekday(date);
+    div.textContent=`${dayNum}/${monthNum} ${weekday}: ${Math.round(day.total)} kcal`;
+    weekSummaryContainer.appendChild(div);
+    totalWeek+=day.total;
+  });
+  weekTotal.textContent=`Veckans totala kalorier: ${Math.round(totalWeek)} kcal`;
+}
+
+// Visa sparade veckor
+function renderSavedWeeks(){
+  savedWeeksContainer.innerHTML="";
+  savedWeeks.forEach((week,i)=>{
+    const div=document.createElement("div");
+    div.textContent=`Vecka ${i+1}: ${week.total} kcal`;
+    savedWeeksContainer.appendChild(div);
+  });
+}
+
+// Spara/load från localStorage
+function saveData(){
+  localStorage.setItem("dayMeals", JSON.stringify(dayMeals));
+  localStorage.setItem("savedMeals", JSON.stringify(savedMeals));
+  localStorage.setItem("weekDays", JSON.stringify(weekDays));
+  localStorage.setItem("savedWeeks", JSON.stringify(savedWeeks));
+}
+
+function loadData(){
+  const savedDay=localStorage.getItem("dayMeals");
+  if(savedDay) dayMeals=JSON.parse(savedDay);
+
+  const savedSaves=localStorage.getItem("savedMeals");
+  if(savedSaves) savedMeals=JSON.parse(savedSaves);
+
+  const savedWeekDays=localStorage.getItem("weekDays");
+  if(savedWeekDays) weekDays=JSON.parse(savedWeekDays);
+
+  const savedWeeksData=localStorage.getItem("savedWeeks");
+  if(savedWeeksData) savedWeeks=JSON.parse(savedWeeksData);
+
+  updateSavedMealsDropdown();
+  renderDayMeals();
+  renderWeekSummary();
+  renderSavedWeeks();
+}
+
+// Dropdown sparade måltider
+function updateSavedMealsDropdown(){
+  savedMealsSelect.innerHTML='<option value="">Välj sparad måltid</option>';
+  savedMeals.forEach((meal,i)=>{
+    const option=document.createElement("option");
+    option.value=i;
+    option.textContent=meal.map(m=>`${m.name} ${m.grams}g`).join(", ");
+    savedMealsSelect.appendChild(option);
+  });
+}
+
+// Återställ dropdowns
+function resetDropdowns(){
+  foodSelect.value="";
+  gramsSelect.value="";
+  savedMealsSelect.value="";
+}
+
+// Visa/dölj input
+newMealBtn.addEventListener("click", ()=>{
+  mealInputContainer.style.display = "block";
+});
+
+// Event listeners
+document.getElementById("addMealBtn").addEventListener("click", ()=>{
+  const name=foodSelect.options[foodSelect.selectedIndex].textContent;
+  const kcal=Number(foodSelect.value);
+  const grams=Number(gramsSelect.value);
+  if(!name || !grams) return;
+  currentMeal.push({name,kcal,grams});
+  renderMealPreview();
+  gramsSelect.value=100;
+});
+
+document.getElementById("confirmMealBtn").addEventListener("click", ()=>{
+  if(currentMeal.length===0) return;
+  dayMeals.push([...currentMeal]);
+  currentMeal=[];
+  renderMealPreview();
+  renderDayMeals();
+  resetDropdowns();
+  mealInputContainer.style.display="none";
+  saveData();
+});
+
+document.getElementById("saveMealBtn").addEventListener("click", ()=>{
+  if(currentMeal.length===0) return;
+  savedMeals.unshift([...currentMeal]);
+  updateSavedMealsDropdown();
+  resetDropdowns();
+  saveData();
+});
+
+document.getElementById("useSavedMealBtn").addEventListener("click", ()=>{
+  const idx = savedMealsSelect.value;
+  if(idx==="") return;
+  dayMeals.push([...savedMeals[idx]]);
+  renderDayMeals();
+  resetDropdowns();
+  saveData();
+});
+
+// Bekräfta dagens intag
+document.getElementById("confirmDayBtn").addEventListener("click", ()=>{
+  let total=0;
+  dayMeals.forEach(meal=>{
+    meal.forEach(m=>{
+      total+=(m.grams/100)*m.kcal;
+    });
+  });
+  const today=new Date().toISOString().split("T")[0];
+  weekDays.push({date: today, total});
+  renderWeekSummary();
+  dayMeals=[];
+  renderDayMeals();
+  resetDropdowns();
+  mealInputContainer.style.display="none";
+  saveData();
+});
+
+// Bekräfta vecka
+document.getElementById("confirmWeekBtn").addEventListener("click", ()=>{
+  let totalWeek=0;
+  weekDays.forEach(day=> totalWeek+=day.total);
+  savedWeeks.push({week: new Date().toISOString().split("T")[0], total: Math.round(totalWeek)});
+  weekDays=[];
+  renderWeekSummary();
+  renderSavedWeeks();
+  saveData();
+});
+
+// Backup: dagens total + sparade veckor + sparade måltider
+document.getElementById("exportJSONBtn").addEventListener("click", ()=>{
+  let dayTotalSum=0;
+  dayMeals.forEach(meal=>{
+    meal.forEach(m=>{
+      dayTotalSum+=(m.grams/100)*m.kcal;
+    });
+  });
+  const today=new Date().toISOString().split("T")[0];
+
+  const backup={
+    date: today,
+    dayTotal: Math.round(dayTotalSum),
+    savedWeeks: savedWeeks,
+    savedMeals: savedMeals
+  };
+
+  const blob=new Blob([JSON.stringify(backup,null,2)], {type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`kalorier_backup_${today}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Importera backup
+document.getElementById("importJSONBtn").addEventListener("click", ()=>{
+  const fileInput=document.getElementById("importFile");
+  if(fileInput.files.length===0) return alert("Välj en JSON-fil först!");
+  const file=fileInput.files[0];
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.savedMeals) savedMeals=data.savedMeals;
+      if(data.savedWeeks) savedWeeks=data.savedWeeks;
+      if(data.dayTotal!==undefined) {
+        // Skapa pågående dag med bara total (kan inte återskapa detaljerade måltider)
+        dayMeals=[];
+      }
+      updateSavedMealsDropdown();
+      renderDayMeals();
+      renderWeekSummary();
+      renderSavedWeeks();
+      saveData();
+      alert("Backup återställd!");
+    }catch(err){
+      alert("Fel vid läsning av fil: "+err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+loadData();
+renderMealPreview();
 </script>
+
+</body>
+</html>
